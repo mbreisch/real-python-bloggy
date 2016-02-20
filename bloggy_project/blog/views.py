@@ -25,28 +25,18 @@ def index(request):
         'popular_posts': popular_posts,
 
     }
-    for post in latest_posts:
-        post.url = encode_url(post.title)
-
-    for pop_post in popular_posts:
-        pop_post.url = encode_url(pop_post.title)
     c = Context(context_dict)
     return HttpResponse(t.render(c))
 
 
-def post(request, post_url):
-    single_post = get_object_or_404(Post, title=post_url.replace('_', ' '))
+def post(request, slug):
+    single_post = get_object_or_404(Post, slug=slug)
     single_post.views += 1  # increment the number of views
     single_post.save()  # and save it
-    popular_posts = get_popular_posts()
-
-    for pop_post in popular_posts:
-        pop_post.url = encode_url(pop_post.title)
-
     t = loader.get_template('blog/post.html')
     context_dict = {
         'single_post': single_post,
-        'popular_posts': popular_posts,
+        'popular_posts': get_popular_posts(),
     }
     c = Context(context_dict)
     return HttpResponse(t.render(c))
@@ -57,10 +47,8 @@ def add_post(request):
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save(commit=True)
-            new_post_url=form.cleaned_data['title'].replace(' ','_')
-            print new_post_url
-            return redirect(reverse('post',args=[new_post_url]))
+            data=form.save(commit=True) # Save method returns the object being saved
+            return redirect(reverse('post',args=[data.slug]))
         else:
             print form.errors
     else:
